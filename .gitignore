@@ -81,3 +81,24 @@ Icon
 logs/
 config.ini
 secrets.json
+
+# PyPI configuration
+.pypirc
+*.pypirc
+
+# Temporary build files
+build_temp/
+temp/
+
+# Local development settings
+local_settings.py
+settings_local.py
+
+# Generated credential files
+*credentials*.json
+*token*.json
+
+# Editor specific files (extending existing entries)
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json

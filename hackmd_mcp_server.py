@@ -121,7 +121,7 @@ class HackMDServer:
         return notes
 
     async def get_note(self, note_id: str) -> Note:
-        """獲取指定筆記的詳細信息"""
+        """獲取指定筆記的詳細信息和內容"""
         print(f"正在獲取筆記 {note_id} 的信息...")
         
         async with await self.get_api_client() as client:
@@ -134,18 +134,6 @@ class HackMDServer:
             note = Note.model_validate(note)
         print(f"轉換後型別: {type(note)}，title: {getattr(note, 'title', None)}")
         return note
-
-    async def get_note_content(self, note_id: str) -> NoteContent:
-        """獲取指定筆記的內容"""
-        print(f"正在獲取筆記 {note_id} 的內容...")
-        
-        async with await self.get_api_client() as client:
-            response = await client.get(f"/notes/{note_id}/content")
-            response.raise_for_status()
-            content = response.text
-            
-        print(f"成功獲取筆記內容，長度: {len(content)} 字符")
-        return NoteContent(content=content)
 
     async def create_note(self, note: NoteCreate) -> Note:
         """創建一個新的 HackMD 筆記"""
@@ -356,22 +344,7 @@ async def serve() -> None:
             
             Tool(
                 name="get_note",
-                description="獲取指定筆記的詳細信息",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "note_id": {
-                            "type": "string",
-                            "description": "筆記的 ID",
-                        }
-                    },
-                    "required": ["note_id"]
-                },
-            ),
-            
-            Tool(
-                name="get_note_content",
-                description="獲取指定筆記的內容",
+                description="獲取指定筆記的詳細信息和內容",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -597,17 +570,6 @@ async def serve() -> None:
                     TextContent(type="text", text=json.dumps(note.model_dump(), indent=2, ensure_ascii=False))
                 ]
                 
-            elif name == "get_note_content":
-                note_id = arguments.get("note_id")
-                
-                if not note_id:
-                    raise ValueError("缺少必要參數: note_id")
-                
-                note_content = await hackmd_server.get_note_content(note_id)
-                return [
-                    TextContent(type="text", text=note_content.content)
-                ]
-                
             elif name == "create_note":
                 title = arguments.get("title")
                 content = arguments.get("content")
@@ -827,8 +789,9 @@ async def serve() -> None:
     async def read_resource_note_content(note_id: str) -> Dict[str, Any]:
         """獲取特定筆記內容資源 (對應 hackmd://notes/{note_id}/content)"""
         try:
-            content = await hackmd_server.get_note_content(note_id)
-            return {"content": content.content}
+            # 使用 get_note 而不是 get_note_content
+            note = await hackmd_server.get_note(note_id)
+            return {"content": note.content} if note.content else {"content": ""}
         except Exception as e:
             print(f"獲取筆記內容資源 {note_id} 時發生錯誤: {e}")
             raise ValueError(f"獲取筆記內容資源 {note_id} 時發生錯誤: {str(e)}")
